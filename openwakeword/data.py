@@ -426,8 +426,26 @@ def mix_clips_batch(
                                       snrs_db, start_index_batch):
             if bg.shape[0] != combined_size:
                 raise ValueError(bg.shape)
+            
+            # fg가 bg보다 더 큰 경우에는 mix하지말고 continue로 버림
+            if fg.shape[0] > bg.shape[0]:
+                continue
+                # raise ValueError(fg.shape)
+            
             mixed_clip = mix_clip(fg, bg, snr, start)
             sequence_labels.append(get_frame_labels(combined_size, start, start+fg.shape[0]))
+            
+            # if len(mixed_clip) == 0:
+            #     print("warning no mixed clips were generated in this batch.")
+            #     continue
+            
+            # if padded_flag:
+            # debug용
+            #     print(f"Padding added for sample with start={start}, fg.shape={fg.shape}, bg.shape={bg.shape}")
+                
+            #     # 오디오 디스플레이
+            #     import IPython.display as ipd
+            #     ipd.display(ipd.Audio(mixed_clips[0], rate=16000, normalize=True, autoplay=False))
 
             if np.random.random() < generated_noise_augmentation:
                 noise_color = ["white", "pink", "blue", "brown", "violet"]
@@ -463,7 +481,8 @@ def mix_clips_batch(
         mixed_clips_batch = (mixed_clips_batch.numpy()*32767).astype(np.int16)
 
         # Remove any clips that are silent (happens rarely when mixing/reverberating)
-        error_index = torch.from_numpy(np.where(mixed_clips_batch.max(dim=1) != 0)[0])
+        # error_index = torch.from_numpy(np.where(mixed_clips_batch.max(dim=1) != 0)[0])
+        error_index = torch.from_numpy(np.where(mixed_clips_batch.max(axis=1) != 0)[0])
         mixed_clips_batch = mixed_clips_batch[error_index]
         labels_batch = labels_batch[error_index]
         sequence_labels_batch = sequence_labels_batch[error_index]
@@ -489,12 +508,77 @@ def get_frame_labels(combined_size, start, end, buffer=1):
 
 
 def mix_clip(fg, bg, snr, start):
+    """
+    print(f"fg.shape: {fg.shape}")
+    print(f"bg.shape: {bg.shape}")
+    -----
+    torch.Size([20240])
+    torch.Size([48000])
+    """
+        
     fg_rms, bg_rms = fg.norm(p=2), bg.norm(p=2)
     snr = 10 ** (snr / 20)
     scale = snr * bg_rms / fg_rms
-    bg[start:start + fg.shape[0]] = bg[start:start + fg.shape[0]] + scale*fg
+    
+    """
+    File /home/openWakeWord/openwakeword/data.py:511, in mix_clip(fg, bg, snr, start)
+    ...
+        510 scale = snr * bg_rms / fg_rms
+    --> 511 bg[start:start + fg.shape[0]] = bg[start:start + fg.shape[0]] + scale*fg
+        512 return bg / 2
+
+    RuntimeError: The size of tensor a (21014) must match the size of tensor b (53326) at non-singleton dimension 0 
+    위 오류로 인해 bg[start:start + fg.shape[0]].shape**이 fg.shape보다 작은 경우, 부족한 길이만큼 배경 오디오(bg)에 패딩을 추가하면 문제를 해결. 이 방법은 Foreground Clip(fg)를 변경하지 않고 Background Clip(bg)를 조정하는 안전한 방법
+    패딩 했는데 나중에 mixed_clips_batch = torch.vstack(mixed_clips)에서 브로드캐스팅이 되지 않음. bg, padded_flag = pad_bg(bg, start, fg.shape[0])
+    그래서, 다른 방법으로 bg[start:start + fg.shape[0]].shape이 fg보다 작은 경우에는 그냥 fg를 return하는데 bg.shape에 맞춰서 padding 후에 return.
+
+    """
+    
+    if bg[start:start + fg.shape[0]].shape < fg.shape:
+        
+        if fg.shape < bg.shape:
+            # fg는 패딩
+            padding_size = bg.shape[0] - fg.shape[0]
+            padding = torch.zeros(padding_size, dtype=fg.dtype, device=fg.device)
+            fg = torch.cat([fg, padding])
+                    
+        # fg.shape > bg.shape: 이 경우는 앞에서 continue 하니까 상관 없음
+        else: # 무조건 fg.shape = bg.shape
+            pass
+        
+        print(f"bg[start:start + fg.shape[0]].shape < fg.shape 이 경우 fg.shape: {fg.shape}")
+
+        if fg.shape != bg.shape:
+            raise ValueError(fg.shape)
+                
+        return fg
+    
+    bg[start:start + fg.shape[0]] = bg[start:start + fg.shape[0]] + scale*fg # fg, bg clip mix하는 코드
     return bg / 2
 
+# def pad_bg(bg, start, fg_length):
+#     """
+#     Pad the background clip (bg) to ensure it can accommodate the foreground clip (fg).
+    
+#     Args:
+#         bg (torch.Tensor): Background audio tensor.
+#         start (int): Start index where the foreground clip will be mixed.
+#         fg_length (int): Length of the foreground clip.
+
+#     Returns:
+#         torch.Tensor: Padded background tensor.
+#     """
+#     # 필요한 패딩 크기 계산
+#     required_length = start + fg_length
+#     if required_length > bg.shape[0]:
+#         # 부족한 부분만큼 패딩 추가
+#         padding_size = required_length - bg.shape[0]
+#         padding = torch.zeros(padding_size, dtype=bg.dtype, device=bg.device)
+#         bg = torch.cat([bg, padding])
+#         # Tracking bg, True->padding 적용 flag
+#         return bg, True
+        
+#     return bg, False
 
 def truncate_clip(x, max_size, method="truncate_start"):
     """
