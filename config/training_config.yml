@@ -1,32 +1,11 @@
 ## Configuration file to be used with `train.py` to create custom wake word/phrase models
 
 # The name of the model (will be used when creating directoires and when saving the final .onnx and .tflite files)
-model_name: "my_model"
-
-# The target word/phrase to be detected by the model. Adding multiple unique words/phrases will
-# still only train a binary model detection model, but it will activate on any one of the provided words/phrases.
-target_phrase:
-  - "hey jarvis"
-
-# Specific phrases that you do *not* want the model to activate on, outside of those generated automatically via phoneme overlap
-# This can be a good way to reduce false positives if you notice that, in practice, certain words or phrases are problematic
-custom_negative_phrases: []
-
-# The total number of positive samples to generate for training (minimum of 20,000 recommended, often 100,000+ is best)
-n_samples: 10000
-
-# The total number of positive samples to generate for validation and early stopping of model training
-n_samples_val: 2000
-
-# The batch size to use with Piper TTS when generating synthetic training data
-tts_batch_size: 50
+model_name: "hey_thomas_20250409_max_negative_weight250"
 
 # The batch size to use when performing data augmentation on generated clips prior to training
 # It's recommended that this not be too large to ensure that there is enough variety in the augmentation
 augmentation_batch_size: 16
-
-# The path to a fork of the piper-sample-generator repository for TTS (https://github.com/dscripka/piper-sample-generator)
-piper_sample_generator_path: "./piper-sample-generator"
 
 # The output directory for the generated synthetic clips, openwakeword features, and trained models
 # Sub-directories will be automatically created for train and test clips for both positive and negative examples
@@ -49,7 +28,7 @@ background_paths_duplication_rate:
 # The location of pre-computed openwakeword features for false-positive validation data
 # If you do not have deployment environment validation data, a good general purpose dataset with
 # a reasonable mix with ~11 hours of speech, noise, and music is available here: https://huggingface.co/datasets/davidscripka/openwakeword_features
-false_positive_validation_data_path: "./validation_set_features.npy"
+false_positive_validation_data_path: "/home/openWakeWord/my_custom_model/hey_thomas_20250409/validation_set_features.npy"
 
 # The number of times to apply augmentations to the generated training data
 # Values greater than 1 reuse each generation that many times, producing overall unique
@@ -67,8 +46,13 @@ augmentation_rounds: 1
 # in decreased training throughput depending on the speed of the underlying storage device). A fast
 # NVME SSD is recommended for optimal performance.
 
+# feature_data_files:
+#   "ACAV100M_sample": "./openwakeword_features_ACAV100M_2000_hrs_16bit.npy"
 feature_data_files:
-  "ACAV100M_sample": "./openwakeword_features_ACAV100M_2000_hrs_16bit.npy"
+  negative_features_train: "/home/openWakeWord/my_custom_model/hey_thomas_20250409/negative_features_train.npy"
+  negative_features_test: "/home/openWakeWord/my_custom_model/hey_thomas_20250409/negative_features_test.npy"
+  positive_features_train: "/home/openWakeWord/my_custom_model/hey_thomas_20250409/positive_features_train.npy"
+  positive_features_test: "/home/openWakeWord/my_custom_model/hey_thomas_20250409/positive_features_test.npy"
 
 # Define the number of examples from each data file per batch. Note that the key names here
 # must correspond to those define in the `feature_data_files` dictionary above (except for
@@ -76,8 +60,16 @@ feature_data_files:
 # of the values for each key define the total batch size for training. Initial testing indicates
 # that batch sizes of 1024-4096 work well in practice.
 
+# batch_n_per_class:
+#   "ACAV100M_sample": 1024
+#   "adversarial_negative": 50
+#   "positive": 50
+# === Batch Sampling Per Source ===
 batch_n_per_class:
-  "ACAV100M_sample": 1024
+  "negative_features_train": 256
+  "positive_features_train": 128
+  "negative_features_test": 0
+  "positive_features_test": 0
   "adversarial_negative": 50
   "positive": 50
 
@@ -97,5 +89,7 @@ steps: 50000
 
 # The maximum negative weight and target false positives per hour, used to control the auto training process
 # The target false positive rate may not be achieved, and adjusting the maximum negative weight may be necessary
-max_negative_weight: 0
+# max_negative_weight는 false positive를 줄이기 위해 loss 값을 조정함.
+# max_negative_weight: 1500
+max_negative_weight: 250
 target_false_positives_per_hour: 0.2
