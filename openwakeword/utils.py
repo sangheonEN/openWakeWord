@@ -267,7 +267,7 @@ class AudioFeatures():
             pool = ThreadPool(processes=ncpu)
 
         # Make batches
-        n_frames = int(np.ceil(x.shape[1]/160-3))
+        n_frames = int(np.ceil(x.shape[1]/160-3)) # x.shape[1] -> window_size * 16000
         mel_bins = 32  # fixed by melspectrogram model
         melspecs = np.empty((x.shape[0], n_frames, mel_bins), dtype=np.float32)
         for i in range(0, max(batch_size, x.shape[0]), batch_size):
@@ -319,9 +319,7 @@ class AudioFeatures():
             pool = ThreadPool(processes=ncpu)
 
         # Calculate array sizes and make batches
-        print(f"x.shape[1] : {x.shape[1]}")
         n_frames = (x.shape[1] - 76)//8 + 1
-        print(f"n_frames : {n_frames}")
         embedding_dim = 96  # fixed by embedding model
         embeddings = np.empty((x.shape[0], n_frames, embedding_dim), dtype=np.float32)
 

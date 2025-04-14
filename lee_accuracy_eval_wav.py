@@ -25,8 +25,8 @@ plt.savefig('savefig_default.png')
 
 # # Calculate the false-accept rate per hour from this result
 
-# false_accepts = openwakeword.metrics.get_false_positives(
-#     [i["hey_thomas_20250409"] for i in scores], threshold=0.5
-# )
+false_accepts = openwakeword.metrics.get_false_positives(
+    [i["hey_thomas_20250409"] for i in scores], threshold=0.5
+)
 
-# print(f"False-accept rate per hour: {false_accepts/1}")
+print(f"False-accept rate per hour: {false_accepts/1}")

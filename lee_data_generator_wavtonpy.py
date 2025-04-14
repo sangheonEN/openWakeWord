@@ -120,6 +120,7 @@ def negative_sample(audio_dataset, clip_window_size):
     row_counter = 0
     for i in tqdm(np.arange(0, audio_dataset.num_rows, batch_size)):
         # Load data in batches and shape into rectangular array
+        # N개의 duration이 다른 음성 샘플이 존재하면, 그걸 16000*clip_size 길이에 맞춰서 배치 데이터 생성
         wav_data = [(j["array"]*32767).astype(np.int16) for j in audio_dataset[i:i+batch_size]["audio"]]
         wav_data = openwakeword.data.stack_clips(wav_data, clip_size=16000*clip_size).astype(np.int16)
         
@@ -131,7 +132,7 @@ def negative_sample(audio_dataset, clip_window_size):
         
         # Compute features (increase ncpu argument for faster processing)
         features = F.embed_clips(x=wav_data, batch_size=1024, ncpu=8)
-        
+                
         # Save computed features to mmap array file (stopping once the desired size is reached)
         # fp.flush()의 역할 : fp는 numpy의 open_memmap()으로 만든 memory-mapped 파일 객체, 데이터를 실제 .npy 파일에 조금씩 직접 저장하는 방식으로 작동, 데이터는 먼저 메모리에 저장되고, flush()를 호출해야 실제로 디스크에 반영
         # 훈련 도중 오류/중단되더라도 저장된 데이터가 유실되지 않도록 하기 위함
@@ -144,6 +145,8 @@ def negative_sample(audio_dataset, clip_window_size):
             fp[row_counter:row_counter+features.shape[0], :, :] = features
             row_counter += features.shape[0]
             fp.flush()
+        print(f"features.shape: {features.shape}")
+        print(f"row_counter: {row_counter}")
             
     # Trip empty rows from the mmapped array
     openwakeword.data.trim_mmap(output_file)
@@ -153,20 +156,26 @@ if __name__ == "__main__":
     
     # dataset loading
     negative_clips, negative_durations = openwakeword.data.filter_audio_paths([
-                                                                               "/home/data/openwakeword/common_voice_Corpus_21.0/cv-corpus-21.0-2025-03-14/en/60sec_below_negative_clips",
-                                                                               "/home/data/openwakeword/background_sound/audioset_16k",
-                                                                               "/home/data/openwakeword/background_sound/custom_data",
-                                                                               "/home/data/openwakeword/background_sound/fma"
+                                                                            #    "/home/data/openwakeword/common_voice_Corpus_21.0/cv-corpus-21.0-2025-03-14/en/60sec_below_negative_clips",
+                                                                            #    "/home/data/openwakeword/background_sound/audioset_16k",
+                                                                            #    "/home/data/openwakeword/background_sound/custom_data",
+                                                                            #    "/home/data/openwakeword/background_sound/fma",
+                                                                            "/home/data/openwakeword/ai_hub_free_conversation_voice/일반남여_자유대화_M_1578412985_32_수도권_실내",
+                                                                            "/home/data/openwakeword/ai_hub_free_conversation_voice/일반남여_자유대화_M_1571674136_39_경상_실내",
+                                                                            "/home/data/openwakeword/ai_hub_free_conversation_voice/일반남여_일반통합12_M_1577013323_36_수도권_실내",
+                                                                            "/home/data/openwakeword/ai_hub_free_conversation_voice/일반남여_일반통합12_M_1573837987_44_경상_실내"
+                                                                            
                                                                                ], # data path 
                                                                               min_length_secs = 0.5, # minimum clip length in seconds
                                                                               max_length_secs = 60*2, # maximum clip length in seconds
                                                                               duration_method = "header" # use the file header to calculate duration)
     )
     positive_clips, positive_durations = openwakeword.data.filter_audio_paths([
-                                                                               "/home/data/openwakeword/openwakeword_positive_sample/piper_VITS_n_mix5_ratio0.5",
-                                                                               "/home/data/openwakeword/openwakeword_positive_sample/VITS_n_mix5_ratio0.8",
-                                                                               "/home/data/openwakeword/openwakeword_positive_sample/VITS_n_mix5_ratio0.2",
-                                                                               "/home/data/openwakeword/openwakeword_positive_sample/VITS_n_mix4_ratio0.5"
+                                                                            #    "/home/data/openwakeword/openwakeword_positive_sample/piper_VITS_n_mix5_ratio0.5",
+                                                                            #    "/home/data/openwakeword/openwakeword_positive_sample/VITS_n_mix5_ratio0.8",
+                                                                            #    "/home/data/openwakeword/openwakeword_positive_sample/VITS_n_mix5_ratio0.2",
+                                                                            #    "/home/data/openwakeword/openwakeword_positive_sample/VITS_n_mix4_ratio0.5",
+                                                                               "/home/data/openwakeword/openwakeword_positive_sample/VITS_n_mix2_ratio0.2"
                                                                                ], # data path 
                                                                               min_length_secs = 0.5, # minimum clip length in seconds
                                                                               max_length_secs = 30*1, # maximum clip length in seconds
@@ -178,7 +187,7 @@ if __name__ == "__main__":
     audio_dataset = audio_dataset.cast_column("audio", datasets.Audio(sampling_rate=16000))
 
     # 오디오 데이터를 특징 벡터로 변환하는 파이프라인의 핵심 구성 요소
-    F = AudioFeatures()
+    F = AudioFeatures() # -> 이거 할때 64000이 저장되네?
     
     audio_window_size = 2
     

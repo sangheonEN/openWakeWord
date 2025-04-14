@@ -939,6 +939,7 @@ class mmap_batch_generator:
 # Function to remove empty rows from the end of a mmap array
 def trim_mmap(mmap_path):
     """
+    이 코드도 mmap_file1 shape = (N, 16, 96)인데, N개 중에 모든 원소의 값이 0의 값을 가지는 데이터를 추출해서 그 데이터를 빼고 다시 저장
     Trims blank rows from the end of a mmaped numpy array by creates new mmap array without the blank rows.
     Note that a copy is created and disk usage will briefly double as the function runs.
 
