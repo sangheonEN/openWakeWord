@@ -32,3 +32,18 @@
 한국어 negative sample에서는 조금 덜하지만, False Positive가 발생한다.
 
 영어 negative sample에서는 거의 모든 샘플에서 False Positive가 발생했다. (근데 이건 오픈 소스에서 제공하는 npy 데이터를 활용해서 그런거 아닌가 싶기도 하고..)
+
+
+**2025/09/19**
+
+A6000 서버에 d/data/openwakeword_train_result 경로에 일자별로 학습 결과 데이터 저장.
+
+우선 소스 별로 기능 정리를 좀 해야겠다.
+
+1. 로컬 디스크 드라이버에 데이터셋 저장 폴더 경로를 참조해서 학습을 바로 진행하는 코드 : /home/openWakeWord/lee_train_code/automatic_model_training_simple_leesangheon.py
+
+2. false positive evaluation 코드 : lee_false_positive_eval_npy.py
+
+3. wav파일을 npy파일로 변환하는 코드 : lee_data_generator_wavtonpy.py
+
+4. prediction 기준 accuracy 측정 코드 : lee_accuracy_eval_wav.py

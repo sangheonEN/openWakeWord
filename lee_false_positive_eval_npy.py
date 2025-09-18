@@ -44,7 +44,7 @@ else:
 
 # 4. 결과 시각화
 plt.figure(figsize=(12, 4))
-plt.plot(scores, label="False Positive Confidence"  )
+plt.plot(scores, label="False Positive Confidence")
 plt.axhline(0.5, color='red', linestyle='--', label="Threshold = 0.5")
 plt.xlabel("Window Index")
 plt.ylabel("Confidence")
