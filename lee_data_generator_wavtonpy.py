@@ -1,3 +1,14 @@
+"""
+이 코드는 wav 파일을 npy 파일로 변환하는 코드이다.
+
+여기서 특징은 background audio를 negative sample로 사용하는데, positive sample을 구축할때 mixing을 수행한다.
+
+하지만, fg(positive sample)가 bg(negative sample)보다 더 큰 경우에는 mix하지말고 continue로 버림
+
+
+"""
+
+
 import os
 import numpy as np
 from tqdm import tqdm
@@ -138,7 +149,7 @@ def negative_sample(audio_dataset, clip_window_size):
         # 훈련 도중 오류/중단되더라도 저장된 데이터가 유실되지 않도록 하기 위함
         # 메모리에 너무 많은 데이터를 쌓는 걸 방지하기 위함
         if row_counter + features.shape[0] > N_total:
-            fp[row_counter:min(row_counter+features.shape[0], N_total), :, :] = features[0:N_total - row_counter, :, :]
+            fp[row_counter:min(row_counter+features.shape[0], N_total), :, :] = features[0:N_total - row_counter, :, :] 
             fp.flush()
             break
         else:

@@ -4,18 +4,23 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 """
+이 코드는 False Positive 평가를 위해서 target_phrase가 포함되지 않은 오디오 데이터에 대해서 검증한다.
+
+결과는 negative_features_false_positive_eval.png로 저장됨. 아무 감지가 되지 않아야 정상이다!
+
 내가 lee_data_generator_wavtonpy로 생성하는 데이터는 하나의 window_size초 오디오로부터 16개의 임베딩 벡터 (96차원)가 생성 (n, 16, 96)
 즉, 1 데이터당 window_size초 짜리임!
 
 """
 
 # 1. Load features from file (shape: [N, 16, 96] or [N, 96])
-npy_path = "/home/openWakeWord/negative_features.npy"
+# npy_path = "/home/openWakeWord/negative_features.npy"
+npy_path = "/home/data/openwakeword/npy_data/negative_sample/0001.npy"
 features = np.load(npy_path)
 use_sliding_window = True if features.ndim == 2 else False
 
 # 2. Load ONNX model
-onnx_model_path = "/home/openWakeWord/models/hey_thomas20250409.onnx"
+onnx_model_path = "/home/openWakeWord/my_custom_model/hey_thomas.onnx"
 session = onnxruntime.InferenceSession(onnx_model_path)
 input_name = session.get_inputs()[0].name
 
@@ -39,7 +44,7 @@ else:
 
 # 4. 결과 시각화
 plt.figure(figsize=(12, 4))
-plt.plot(scores, label="False Positive Confidence")
+plt.plot(scores, label="False Positive Confidence"  )
 plt.axhline(0.5, color='red', linestyle='--', label="Threshold = 0.5")
 plt.xlabel("Window Index")
 plt.ylabel("Confidence")

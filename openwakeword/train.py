@@ -636,6 +636,7 @@ if __name__ == '__main__':
 
     # imports Piper for synthetic sample generation
     sys.path.insert(0, os.path.abspath(config["piper_sample_generator_path"]))
+    # sys.path.append("/home/data/openwakeword/piper-sample-generator")
     from generate_samples import generate_samples
 
     # Define output locations
